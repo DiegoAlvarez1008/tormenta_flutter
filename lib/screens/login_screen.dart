@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,25 +17,36 @@ class _LoginScreenState extends State<LoginScreen> {
   String errorText = "";
 
   Future<void> login() async {
-    final dni = dniController.text.trim();           // DNI
-    final password = passwordController.text.trim(); // Contraseña
+    final dni = dniController.text.trim();
+    final password = passwordController.text.trim();
 
     if (!_formKey.currentState!.validate()) return;
 
     try {
-      // Aquí asumimos que el email es igual al DNI + dominio fijo,
-      // o bien debes buscar en Firestore el email asociado al DNI.
-      // Para este ejemplo simple vamos a suponer:
-      final email = "$dni@tuapp.com";
+      // 1️⃣ Buscamos el correo real asociado al DNI en Firestore:
+      final query = await FirebaseFirestore.instance
+          .collection('users')
+          .where('dni', isEqualTo: dni)
+          .limit(1)
+          .get();
 
+      if (query.docs.isEmpty) {
+        setState(() => errorText = "No existe un usuario con ese DNI");
+        return;
+      }
+
+      final email = query.docs.first['correo'] as String;
+
+      // 2️⃣ Autenticamos con FirebaseAuth usando ese correo:
       await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
 
-      // Login exitoso
-      Navigator.pushReplacementNamed(context, '/welcome',
-          arguments: dni); // Pasamos el DNI para buscar el nombre
+      // 3️⃣ Si todo ok, navegamos a Welcome
+      Navigator.pushReplacementNamed(context, '/welcome', arguments: dni);
     } on FirebaseAuthException catch (e) {
-      setState(() => errorText = e.message ?? "Error en el login");
+      setState(() => errorText = e.message ?? "Error de login");
+    } catch (e) {
+      setState(() => errorText = "Ocurrió un error inesperado");
     }
   }
 

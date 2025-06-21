@@ -84,7 +84,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Registro exitoso')),
       );
-      Navigator.pushReplacementNamed(context, '/login');
+      // Limpiar campos
+      dniController.clear();
+      nameController.clear();
+      emailController.clear();
+      phoneController.clear();
+      passwordController.clear();
+      repeatPasswordController.clear();
+
+      // Navegar al home
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+
+      // Navigator.pushReplacementNamed(context, '/login');
     } on FirebaseAuthException catch (e) {
       setState(() => errorText = e.message ?? "Error de autenticación");
     } catch (e) {
