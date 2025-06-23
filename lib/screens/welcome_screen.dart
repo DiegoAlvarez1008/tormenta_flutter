@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 // Para BLE
 // import 'package:flutter_blue/flutter_blue.dart';
@@ -62,7 +64,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           .set({
         'emergencia1': _emerg1Controller.text.trim(),
         'emergencia2': _emerg2Controller.text.trim(),
-      },SetOptions(merge:true));
+      }, SetOptions(merge:true));
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Números de emergencia guardados')),
@@ -74,6 +76,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   void _logout() async {
     await FirebaseAuth.instance.signOut();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('savedUid');
     Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false);
   }
 
@@ -120,7 +124,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Bienvenida")),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false),
+        ),
+        title: const Text("Bienvenida"),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -131,8 +141,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   style: const TextStyle(fontSize: 24)),
             ),
             const SizedBox(height: 20),
-
-            // Formulario de números de emergencia
             Form(
               key: _formKeyEmerg,
               child: Column(
@@ -176,7 +184,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 30),
             Center(
               child: Column(
@@ -189,7 +196,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ),
             ),
           ],
-
         ),
       ),
     );

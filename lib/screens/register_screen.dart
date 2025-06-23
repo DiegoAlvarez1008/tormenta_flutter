@@ -185,10 +185,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 onPressed: register,
                 child: const Text("Registrarse"),
               ),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Volver al inicio"),
-              ),
+
             ],
           ),
         ),

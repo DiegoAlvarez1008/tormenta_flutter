@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-
-bool rememberMe = false; // Se declara el flag
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,6 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final dniController = TextEditingController();
   final passwordController = TextEditingController();
   bool showPassword = false;
+  bool rememberMe = false; // Se declara el flag
   String errorText = "";
 
   Future<void> login() async {
@@ -43,6 +42,12 @@ class _LoginScreenState extends State<LoginScreen> {
       await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
 
+      // Guardar preferencia "Recordarme"
+      if (rememberMe) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('savedUid', FirebaseAuth.instance.currentUser!.uid);
+      }
+
       // 3️⃣ Si todo ok, navegamos a Welcome
       Navigator.pushReplacementNamed(context, '/welcome', arguments: dni);
     } on FirebaseAuthException catch (e) {
@@ -53,9 +58,22 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
+  void dispose() {
+    dniController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Iniciar sesión")),
+      appBar: AppBar(
+          leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false),
+          ),
+      title: const Text("Iniciar sesión"),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -65,9 +83,10 @@ class _LoginScreenState extends State<LoginScreen> {
               controller: dniController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: "DNI"),
-              validator: (v) =>
-              v == null || v.length != 8 ? 'DNI inválido' : null,
+              validator: (value) =>
+              value == null || value.length != 8 ? 'DNI inválido' : null,
             ),
+            const SizedBox(height: 10),
             TextFormField(
               controller: passwordController,
               obscureText: !showPassword,
@@ -77,13 +96,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   icon: Icon(showPassword
                       ? Icons.visibility_off
                       : Icons.visibility),
-                  onPressed: () =>
-                      setState(() => showPassword = !showPassword),
+                  onPressed: () => setState(() => showPassword = !showPassword),
                 ),
               ),
-              validator: (v) => v == null || v.isEmpty
-                  ? 'Contraseña requerida'
-                  : null,
+              validator: (value) => value == null || value.isEmpty ? 'Contraseña requerida' : null,
+            ),
+            const SizedBox(height: 10),
+            CheckboxListTile(
+              title: const Text("Recordarme en este dispositivo"),
+              value: rememberMe,
+              onChanged: (v) => setState(() => rememberMe = v!),
+              controlAffinity: ListTileControlAffinity.leading,
             ),
             if (errorText.isNotEmpty)
               Padding(
@@ -93,10 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             const SizedBox(height: 20),
             ElevatedButton(onPressed: login, child: const Text("Entrar")),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Volver al inicio"),
-            ),
+
           ]),
         ),
       ),
