@@ -49,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       // 3️⃣ Si todo ok, navegamos a Welcome
-      Navigator.pushReplacementNamed(context, '/welcome', arguments: dni);
+      Navigator.pushReplacementNamed(context, '/root', arguments: dni);
     } on FirebaseAuthException catch (e) {
       setState(() => errorText = e.message ?? "Error de login");
     } catch (e) {

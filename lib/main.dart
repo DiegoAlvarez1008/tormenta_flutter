@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-import 'screens/welcome_screen.dart';
+import 'screens/emergency_register.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'screens/intro_screen.dart';
+import 'screens/root_navigation.dart';
+import 'screens/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,7 +31,10 @@ class MyApp extends StatelessWidget {
         '/': (context) => const HomeScreen(),
         '/register': (context) => const RegisterScreen(),
         '/login': (context) => const LoginScreen(),
-        '/welcome': (context) => const WelcomeScreen(),
+        '/emergency': (context) => const EmergencyRegisterScreen(),
+        '/root': (context) => const RootNavigation(),
+        '/intro': (context) => const IntroScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }

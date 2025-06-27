@@ -8,13 +8,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 // Para BLE
 // import 'package:flutter_blue/flutter_blue.dart';
 
-class WelcomeScreen extends StatefulWidget {
-  const WelcomeScreen({super.key});
+class EmergencyRegisterScreen  extends StatefulWidget {
+  const EmergencyRegisterScreen ({super.key});
   @override
-  State<WelcomeScreen> createState() => _WelcomeScreenState();
+  State<EmergencyRegisterScreen > createState() => _EmergencyRegisterScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> {
+class _EmergencyRegisterScreenState extends State<EmergencyRegisterScreen> {
   String displayName = "";
 
   // Formulario emergencia

@@ -39,6 +39,9 @@ dependencies:
   cloud_firestore: ^5.6.9
   shared_preferences: ^2.0.15
   flutter_reactive_ble: ^5.0.0
+  flutter_blue_plus: ^1.32.4
+  fl_chart: ^1.0.0
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -61,6 +64,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/images/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
