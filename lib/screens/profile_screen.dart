@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({Key? key}) : super(key: key);
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -11,13 +12,11 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-
-  String dni = '';
-  final TextEditingController nombreController = TextEditingController();
-  final TextEditingController telefonoController = TextEditingController();
-  final TextEditingController correoController = TextEditingController();
-
   bool loading = true;
+  String dni = '';
+  final nombreCtrl = TextEditingController();
+  final telefonoCtrl = TextEditingController();
+  final correoCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -27,56 +26,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserData() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final snapshot = await FirebaseFirestore.instance
+    if (user == null) {
+      setState(() => loading = false);
+      return;
+    }
+    final snap = await FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .get();
-
-    if (snapshot.exists) {
-      final data = snapshot.data()!;
-      setState(() {
-        dni = data['dni'] ?? '';
-        nombreController.text = data['nombre'] ?? '';
-        telefonoController.text = data['telefono'] ?? '';
-        correoController.text = data['correo'] ?? '';
-        loading = false;
-      });
+    final data = snap.data();
+    if (data != null) {
+      dni = data['dni'] as String? ?? '';
+      nombreCtrl.text = data['nombre'] as String? ?? '';
+      telefonoCtrl.text = data['telefono'] as String? ?? '';
+      correoCtrl.text = data['correo'] as String? ?? '';
     }
+    setState(() => loading = false);
   }
 
-  Future<void> _guardarCambios() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .update({
-      'nombre': nombreController.text.trim(),
-      'telefono': telefonoController.text.trim(),
-      'correo': correoController.text.trim(),
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Datos actualizados correctamente')),
-    );
-  }
-
-  void _cerrarSesion() async {
+  Future<void> _logout() async {
+    // 1) Cerrar sesión en Firebase
     await FirebaseAuth.instance.signOut();
-    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-  }
 
-  @override
-  void dispose() {
-    nombreController.dispose();
-    telefonoController.dispose();
-    correoController.dispose();
-    super.dispose();
+    // 2) Eliminar la sesión recordada
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('savedUid');
+
+    // 3) Volver al Home (pantalla principal)
+    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
   }
 
   @override
@@ -86,7 +63,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
-
     return Scaffold(
       appBar: AppBar(title: const Text('Perfil')),
       body: SingleChildScrollView(
@@ -105,51 +81,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 12),
               TextFormField(
-                controller: nombreController,
+                controller: nombreCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Nombre completo',
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) =>
-                value == null || value.isEmpty ? 'Campo obligatorio' : null,
+                validator: (v) => v!.isEmpty ? 'Campo obligatorio' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
-                controller: telefonoController,
+                controller: telefonoCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Teléfono',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.phone,
-                validator: (value) =>
-                value == null || value.length != 9 ? 'Número inválido' : null,
+                validator: (v) =>
+                v != null && v.length == 9 ? null : 'Número inválido',
               ),
               const SizedBox(height: 12),
               TextFormField(
-                controller: correoController,
+                controller: correoCtrl,
                 decoration: const InputDecoration(
                   labelText: 'Correo electrónico',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.emailAddress,
-                validator: (value) =>
-                value != null && value.contains('@') ? null : 'Correo inválido',
+                validator: (v) =>
+                v != null && v.contains('@') ? null : 'Correo inválido',
               ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
-                onPressed: _guardarCambios,
+                onPressed: () {
+                  if (_formKey.currentState!.validate()) {
+                    FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(FirebaseAuth.instance.currentUser!.uid)
+                        .update({
+                      'nombre': nombreCtrl.text.trim(),
+                      'telefono': telefonoCtrl.text.trim(),
+                      'correo': correoCtrl.text.trim(),
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Perfil actualizado')),
+                    );
+                  }
+                },
                 icon: const Icon(Icons.save),
                 label: const Text('Guardar cambios'),
               ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
-                onPressed: _cerrarSesion,
+                onPressed: _logout,
                 icon: const Icon(Icons.logout),
                 label: const Text('Cerrar sesión'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               ),
             ],
           ),

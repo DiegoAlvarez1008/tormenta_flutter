@@ -3,14 +3,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 
-class GraphsScreen extends StatefulWidget {
-  const GraphsScreen({super.key});
+class ChartsScreen extends StatefulWidget {
+  const ChartsScreen({super.key});
 
   @override
-  State<GraphsScreen> createState() => _GraphsScreenState();
+  State<ChartsScreen> createState() => _ChartsScreenState();
 }
 
-class _GraphsScreenState extends State<GraphsScreen> {
+class _ChartsScreenState extends State<ChartsScreen> {
   List<QueryDocumentSnapshot> _measurements = [];
   String _selectedRange = '7'; // Default: last 7 days
   bool _loading = true;

@@ -4,30 +4,27 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+class EmergencyRegisterScreen extends StatefulWidget {
+  final String dni;
 
-// Para BLE
-// import 'package:flutter_blue/flutter_blue.dart';
+  const EmergencyRegisterScreen({super.key, required this.dni});
 
-class EmergencyRegisterScreen  extends StatefulWidget {
-  const EmergencyRegisterScreen ({super.key});
   @override
-  State<EmergencyRegisterScreen > createState() => _EmergencyRegisterScreenState();
+  State<EmergencyRegisterScreen> createState() => _EmergencyRegisterScreenState();
 }
 
 class _EmergencyRegisterScreenState extends State<EmergencyRegisterScreen> {
   String displayName = "";
 
-  // Formulario emergencia
   final _formKeyEmerg = GlobalKey<FormState>();
   final _emerg1Controller = TextEditingController();
   final _emerg2Controller = TextEditingController();
   String _emergError = "";
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final dni = ModalRoute.of(context)!.settings.arguments as String;
-    _loadUserName(dni);
+  void initState() {
+    super.initState();
+    _loadUserName(widget.dni);
   }
 
   Future<void> _loadUserName(String dni) async {
@@ -64,62 +61,27 @@ class _EmergencyRegisterScreenState extends State<EmergencyRegisterScreen> {
           .set({
         'emergencia1': _emerg1Controller.text.trim(),
         'emergencia2': _emerg2Controller.text.trim(),
-      }, SetOptions(merge:true));
+      }, SetOptions(merge: true));
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Números de emergencia guardados')),
+      );
+
+      // Reinicia RootNavigation mostrando la pestaña 0
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/root',
+        arguments: {
+          'dni': widget.dni,
+          'initialIndex': 0,
+        },
+            (route) => false,
       );
     } catch (e) {
       setState(() => _emergError = "Error al guardar: ${e.toString()}");
     }
   }
 
-  void _logout() async {
-    await FirebaseAuth.instance.signOut();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('savedUid');
-    Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false);
-  }
-
-  void _exitApp() {
-    SystemNavigator.pop();
-  }
-
-  Future<void> _onConnectBluetoothPressed() async {
-    // EJEMPLO PSEUDO-CÓDIGO BLE usando flutter_blue:
-
-    // final ble = FlutterBlue.instance;
-    // var state = await ble.state.first;
-    // if (state != BluetoothState.on) {
-    //   showDialog(
-    //     context: context,
-    //     builder: (_) => AlertDialog(
-    //       title: const Text("Bluetooth desactivado"),
-    //       content: const Text(
-    //           "Esta función requiere que tengas el Bluetooth encendido."),
-    //       actions: [
-    //         TextButton(
-    //           onPressed: () => Navigator.pop(context),
-    //           child: const Text("OK"),
-    //         )
-    //       ],
-    //     ),
-    //   );
-    //   return;
-    // }
-    // // Si está activo, iniciar escaneo
-    // ble.scan(timeout: const Duration(seconds: 4)).listen((scanResult) {
-    //   if (scanResult.device.name == "ESP32MiDispositivo") {
-    //     ble.stopScan();
-    //     scanResult.device.connect();
-    //     // Luego suscribirse a caracteristicas para leer datos
-    //   }
-    // });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Aquí iniciaremos la conexión Bluetooth…")),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -181,17 +143,6 @@ class _EmergencyRegisterScreenState extends State<EmergencyRegisterScreen> {
                     onPressed: _saveEmergencyNumbers,
                     child: const Text("Guardar números de emergencia"),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            Center(
-              child: Column(
-                children: [
-                  ElevatedButton(onPressed: _onConnectBluetoothPressed, child: const Text("Conectar al dispositivo ESP32")) ,
-                  const SizedBox(height: 20),
-                  ElevatedButton(onPressed: _logout, child: const Text("Cerrar sesión")),
-                  ElevatedButton(onPressed: _exitApp, child: const Text("Salir de la app")),
                 ],
               ),
             ),

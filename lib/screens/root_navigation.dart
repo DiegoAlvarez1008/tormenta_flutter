@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-// Importa aquí tus pantallas específicas
 import 'intro_screen.dart';
 import 'emergency_register.dart';
 import 'esp32_screen.dart';
@@ -10,7 +9,7 @@ import 'charts_screen.dart';
 import 'profile_screen.dart';
 
 class RootNavigation extends StatefulWidget {
-  const RootNavigation({super.key});
+  const RootNavigation({Key? key}) : super(key: key);
 
   @override
   State<RootNavigation> createState() => _RootNavigationState();
@@ -20,33 +19,49 @@ class _RootNavigationState extends State<RootNavigation> {
   int _currentIndex = 0;
   late final List<Widget> _screens;
   bool _isLoading = true;
+  String _dni = '';
 
   @override
-  void initState() {
-    super.initState();
-    _checkEmergencyNumbers();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Leer DNI desde los argumentos de Navigator
+    final args =
+    ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    _dni = args != null ? (args['dni'] as String? ?? '') : '';
+    _initScreens();
   }
 
-  Future<void> _checkEmergencyNumbers() async {
+  Future<void> _initScreens() async {
+    // Consultar Firestore si el usuario ya guardó números de emergencia
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    bool hasNumbers = false;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final data = doc.data();
+      hasNumbers = data != null &&
+          data['emergencia1'] != null &&
+          data['emergencia2'] != null;
+    }
 
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .get();
-
-    final hasNumbers = (doc.data()?['emergency1'] != null && doc.data()?['emergency2'] != null);
-
+    // Crear la lista de pantallas, inyectando _dni solo donde se necesita
     _screens = [
-      hasNumbers ? const IntroScreen() : const EmergencyRegisterScreen(),
-      const EmergencyRegisterScreen(),
+      IntroScreen(dni: _dni),
+      EmergencyRegisterScreen(dni: _dni),
       const Esp32Screen(),
-      const GraphsScreen(),
+      const ChartsScreen(),
       const ProfileScreen(),
     ];
 
-    setState(() => _isLoading = false);
+    // Si no hay números de emergencia, forzamos que abra la segunda pestaña
+    final initialIndex = hasNumbers ? 0 : 1;
+
+    setState(() {
+      _currentIndex = initialIndex;
+      _isLoading = false;
+    });
   }
 
   @override
@@ -61,8 +76,8 @@ class _RootNavigationState extends State<RootNavigation> {
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
         type: BottomNavigationBarType.fixed,
+        onTap: (i) => setState(() => _currentIndex = i),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
           BottomNavigationBarItem(icon: Icon(Icons.phone), label: 'Números'),

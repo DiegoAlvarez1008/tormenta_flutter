@@ -21,7 +21,14 @@ class HomeScreen extends StatelessWidget {
       if (query.docs.isNotEmpty) {
         final dni = query.docs.first['dni'] as String;
         // Vamos directo a WelcomeScreen con el DNI recuperado
-        Navigator.pushReplacementNamed(context, '/welcome', arguments: dni);
+        Navigator.pushReplacementNamed(
+          context,
+          '/root',
+          arguments: {
+            'dni': dni,
+            'initialIndex': 0, // Índice de la pestaña que quieras mostrar primero
+          },
+        );
         return;
       } else {
         // Si no encontramos el documento, limpiamos la preferencia
@@ -30,7 +37,7 @@ class HomeScreen extends StatelessWidget {
     }
 
     // Si no hay sesión guardada o falló la búsqueda, abrimos LoginScreen
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushNamed(context, '/login');
   }
 
   @override
@@ -40,6 +47,7 @@ class HomeScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
@@ -49,28 +57,23 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 40),
               ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/register');
-                },
-                child: const Text("Registrarse"),
+                onPressed: () => Navigator.pushNamed(context, '/register'),
                 style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                child: const Text("Registrarse"),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
-                  _handleLogin(context);
-                },
-                child: const Text("Iniciar sesión"),
+                onPressed: () => _handleLogin(context),
                 style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                child: const Text("Iniciar sesión"),
               ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: ()  => SystemNavigator.pop(),
-                child: const Text("Salir de la aplicación"),
                 style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                child: const Text("Salir de la aplicación"),
               ),
-            ],
-          ),
+            ]),
         ),
       ),
     );

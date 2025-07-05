@@ -11,49 +11,45 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final dniController = TextEditingController();
-  final passwordController = TextEditingController();
-  bool showPassword = false;
-  bool rememberMe = false; // Se declara el flag
+  final TextEditingController dniController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  bool rememberMe = false;
   String errorText = "";
 
-  Future<void> login() async {
-    final dni = dniController.text.trim();
-    final password = passwordController.text.trim();
-
+  Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
+    final dni = dniController.text.trim();
+    final password = passwordController.text;
 
     try {
-      // 1️⃣ Buscamos el correo real asociado al DNI en Firestore:
-      final query = await FirebaseFirestore.instance
+      // Busca UID por DNI
+      final q = await FirebaseFirestore.instance
           .collection('users')
           .where('dni', isEqualTo: dni)
           .limit(1)
           .get();
-
-      if (query.docs.isEmpty) {
-        setState(() => errorText = "No existe un usuario con ese DNI");
+      if (q.docs.isEmpty) {
+        setState(() => errorText = "DNI no registrado");
         return;
       }
-
-      final email = query.docs.first['correo'] as String;
-
-      // 2️⃣ Autenticamos con FirebaseAuth usando ese correo:
+      final uid = q.docs.first['uid'] as String;
+      final email = q.docs.first['correo'] as String;
+      // Autentica con email+password
       await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
-
-      // Guardar preferencia "Recordarme"
+      // Guarda uid si pidió recordar
       if (rememberMe) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('savedUid', FirebaseAuth.instance.currentUser!.uid);
+        await prefs.setString('savedUid', uid);
       }
-
-      // 3️⃣ Si todo ok, navegamos a Welcome
-      Navigator.pushReplacementNamed(context, '/root', arguments: dni);
+      // Navega a root
+      Navigator.pushReplacementNamed(
+        context,
+        '/root',
+        arguments: {'dni': dni, 'initialIndex': 0},
+      );
     } on FirebaseAuthException catch (e) {
-      setState(() => errorText = e.message ?? "Error de login");
-    } catch (e) {
-      setState(() => errorText = "Ocurrió un error inesperado");
+      setState(() => errorText = e.message ?? "Error de autenticación");
     }
   }
 
@@ -67,56 +63,37 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-          leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false),
-          ),
-      title: const Text("Iniciar sesión"),
-      ),
+      appBar: AppBar(title: const Text("Iniciar Sesión")),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
-          child: Column(children: [
+          child: ListView(shrinkWrap: true, children: [
             TextFormField(
               controller: dniController,
+              decoration: const InputDecoration(labelText: "DNI (8 dígitos)"),
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "DNI"),
-              validator: (value) =>
-              value == null || value.length != 8 ? 'DNI inválido' : null,
+              validator: (v) =>
+              v != null && v.length == 8 ? null : "DNI inválido",
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             TextFormField(
               controller: passwordController,
-              obscureText: !showPassword,
-              decoration: InputDecoration(
-                labelText: "Contraseña",
-                suffixIcon: IconButton(
-                  icon: Icon(showPassword
-                      ? Icons.visibility_off
-                      : Icons.visibility),
-                  onPressed: () => setState(() => showPassword = !showPassword),
-                ),
-              ),
-              validator: (value) => value == null || value.isEmpty ? 'Contraseña requerida' : null,
+              decoration: const InputDecoration(labelText: "Contraseña"),
+              obscureText: true,
+              validator: (v) =>
+              v != null && v.length >= 6 ? null : "Mínimo 6 caracteres",
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             CheckboxListTile(
-              title: const Text("Recordarme en este dispositivo"),
               value: rememberMe,
-              onChanged: (v) => setState(() => rememberMe = v!),
-              controlAffinity: ListTileControlAffinity.leading,
+              onChanged: (v) => setState(() => rememberMe = v ?? false),
+              title: const Text("Recordarme en este dispositivo"),
             ),
             if (errorText.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(errorText,
-                    style: const TextStyle(color: Colors.red)),
-              ),
+              Text(errorText, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 20),
-            ElevatedButton(onPressed: login, child: const Text("Entrar")),
-
+            ElevatedButton(onPressed: _login, child: const Text("Entrar")),
           ]),
         ),
       ),
