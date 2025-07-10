@@ -42,15 +42,15 @@ class _RootNavigationState extends State<RootNavigation> {
           .get();
       final data = doc.data();
       hasNumbers = data != null &&
-          data['emergencia1'] != null &&
-          data['emergencia2'] != null;
+          data['emergencyPhone1'] != null &&
+          data['emergencyPhone2'] != null;
     }
 
     // Crear la lista de pantallas, inyectando _dni solo donde se necesita
     _screens = [
       IntroScreen(dni: _dni),
       EmergencyRegisterScreen(dni: _dni),
-      const Esp32Screen(),
+      const ESP32Screen(),
       const ChartsScreen(),
       const ProfileScreen(),
     ];

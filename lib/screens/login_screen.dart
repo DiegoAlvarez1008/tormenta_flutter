@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Asegúrate de tener esto en pubspec.yaml
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -11,7 +12,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final emailController = TextEditingController();
+  final dniController = TextEditingController();
   final passwordController = TextEditingController();
   bool rememberMe = false;
   bool showPassword = false;
@@ -21,8 +22,25 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     try {
+      final dni = dniController.text.trim();
+
+      // 🔍 Buscar el correo por DNI en Firestore (ajusta la colección según tu estructura)
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('dni', isEqualTo: dni)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) {
+        setState(() => errorText = "DNI no encontrado");
+        return;
+      }
+
+      final email = snapshot.docs.first.get('correo');
+
+      // ✅ Autenticación con el correo encontrado
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
+        email: email,
         password: passwordController.text.trim(),
       );
 
@@ -34,6 +52,8 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.pushReplacementNamed(context, '/root');
     } on FirebaseAuthException catch (e) {
       setState(() => errorText = e.message ?? "Error de autenticación");
+    } catch (e) {
+      setState(() => errorText = "Error inesperado: $e");
     }
   }
 
@@ -48,10 +68,10 @@ class _LoginScreenState extends State<LoginScreen> {
           child: ListView(
             children: [
               TextFormField(
-                controller: emailController,
-                decoration: const InputDecoration(labelText: "Correo electrónico"),
-                keyboardType: TextInputType.emailAddress,
-                validator: (v) => v == null || !v.contains('@') ? "Correo inválido" : null,
+                controller: dniController,
+                decoration: const InputDecoration(labelText: "DNI"),
+                keyboardType: TextInputType.number,
+                validator: (v) => v == null || v.length < 7 ? "DNI inválido" : null,
               ),
               const SizedBox(height: 12),
               TextFormField(

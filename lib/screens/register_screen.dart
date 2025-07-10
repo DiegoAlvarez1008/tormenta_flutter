@@ -15,6 +15,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
+  final emergency1Controller = TextEditingController();
+  final emergency2Controller = TextEditingController();
   final passwordController = TextEditingController();
   final repeatPasswordController = TextEditingController();
   bool showPassword = false;
@@ -57,6 +59,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         'nombre': nameController.text.trim(),
         'correo': emailController.text.trim(),
         'telefono': phoneController.text.trim(),
+        'emergencyPhone1': emergency1Controller.text.trim(),
+        'emergencyPhone2': emergency2Controller.text.trim(),
         'uid': userCredential.user!.uid,
         'createdAt': Timestamp.now(),
       });
@@ -83,27 +87,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 keyboardType: TextInputType.number,
                 validator: (v) => v == null || v.length != 8 ? "DNI inválido" : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: nameController,
                 decoration: const InputDecoration(labelText: "Nombre completo"),
                 validator: (v) => v == null || v.isEmpty ? "Campo obligatorio" : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: emailController,
                 decoration: const InputDecoration(labelText: "Correo electrónico"),
                 keyboardType: TextInputType.emailAddress,
                 validator: (v) => v == null || !v.contains('@') ? "Correo inválido" : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: phoneController,
-                decoration: const InputDecoration(labelText: "Teléfono (9 dígitos)"),
+                decoration: const InputDecoration(labelText: "Teléfono principal (9 dígitos)"),
                 keyboardType: TextInputType.phone,
                 validator: (v) => v == null || v.length != 9 ? "Número inválido" : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: emergency1Controller,
+                decoration: const InputDecoration(labelText: "Teléfono de emergencia 1"),
+                keyboardType: TextInputType.phone,
+                validator: (v) => v == null || v.isEmpty ? "Campo obligatorio" : null,
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: emergency2Controller,
+                decoration: const InputDecoration(labelText: "Teléfono de emergencia 2"),
+                keyboardType: TextInputType.phone,
+                validator: (v) => v == null || v.isEmpty ? "Campo obligatorio" : null,
+              ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: passwordController,
                 obscureText: !showPassword,
@@ -116,7 +134,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 validator: (v) => v == null || v.length < 6 ? "Mínimo 6 caracteres" : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: repeatPasswordController,
                 obscureText: !showPassword,
@@ -129,7 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 validator: (v) => v != passwordController.text ? "Las contraseñas no coinciden" : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               if (errorText.isNotEmpty)
                 Text(errorText, style: const TextStyle(color: Colors.red)),
               ElevatedButton(

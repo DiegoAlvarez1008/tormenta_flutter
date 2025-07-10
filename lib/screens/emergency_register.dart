@@ -44,8 +44,6 @@ class _EmergencyRegisterScreenState extends State<EmergencyRegisterScreen> {
       } else {
         displayName = parts[0];
       }
-    } else {
-      displayName = FirebaseAuth.instance.currentUser?.email ?? "";
     }
     setState(() {});
   }
@@ -87,10 +85,6 @@ class _EmergencyRegisterScreenState extends State<EmergencyRegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false),
-        ),
         title: const Text("Bienvenida"),
       ),
       body: SingleChildScrollView(
