@@ -1,145 +1,77 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tormenta_app/resultados_promedio.dart';
 
-class EmergencyRegisterScreen extends StatefulWidget {
-  final String dni;
-
-  const EmergencyRegisterScreen({super.key, required this.dni});
-
-  @override
-  State<EmergencyRegisterScreen> createState() => _EmergencyRegisterScreenState();
-}
-
-class _EmergencyRegisterScreenState extends State<EmergencyRegisterScreen> {
-  String displayName = "";
-
-  final _formKeyEmerg = GlobalKey<FormState>();
-  final _emerg1Controller = TextEditingController();
-  final _emerg2Controller = TextEditingController();
-  String _emergError = "";
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserName(widget.dni);
-  }
-
-  Future<void> _loadUserName(String dni) async {
-    final query = await FirebaseFirestore.instance
-        .collection('users')
-        .where('dni', isEqualTo: dni)
-        .limit(1)
-        .get();
-
-    if (query.docs.isNotEmpty) {
-      final name = query.docs.first['nombre'] as String;
-      final parts = name.split(' ');
-      if (parts.length >= 4) {
-        displayName = "${parts[0]} ${parts[2]}";
-      } else if (parts.length >= 2) {
-        displayName = "${parts[0]} ${parts[1]}";
-      } else {
-        displayName = parts[0];
-      }
-    }
-    setState(() {});
-  }
-
-  Future<void> _saveEmergencyNumbers() async {
-    if (!_formKeyEmerg.currentState!.validate()) return;
-
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .set({
-        'emergencia1': _emerg1Controller.text.trim(),
-        'emergencia2': _emerg2Controller.text.trim(),
-      }, SetOptions(merge: true));
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Números de emergencia guardados')),
-      );
-
-      // Reinicia RootNavigation mostrando la pestaña 0
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/root',
-        arguments: {
-          'dni': widget.dni,
-          'initialIndex': 0,
-        },
-            (route) => false,
-      );
-    } catch (e) {
-      setState(() => _emergError = "Error al guardar: ${e.toString()}");
-    }
-  }
-
+class EmergencyRegisterScreen extends StatelessWidget {
+  const EmergencyRegisterScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final t = ResultadosPromedio.tempPromedio;
+    final bpm = ResultadosPromedio.bpmPromedio;
+    final cantidad = ResultadosPromedio.cantidadDatos;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Bienvenida"),
-      ),
+      appBar: AppBar(title: const Text("Resultados Burch-Wartofsky")),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Center(
-              child: Text("Bienvenido, $displayName",
-                  style: const TextStyle(fontSize: 24)),
-            ),
             const SizedBox(height: 20),
-            Form(
-              key: _formKeyEmerg,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Números de emergencia",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  TextFormField(
-                    controller: _emerg1Controller,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(labelText: "Emergencia 1 (9 dígitos)"),
-                    validator: (v) {
-                      if (v == null || v.length != 9) return "Debe tener 9 dígitos";
-                      return null;
-                    },
-                  ),
-                  TextFormField(
-                    controller: _emerg2Controller,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(labelText: "Emergencia 2 (9 dígitos)"),
-                    validator: (v) {
-                      if (v == null || v.length != 9) return "Debe tener 9 dígitos";
-                      return null;
-                    },
-                  ),
-                  if (_emergError.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        _emergError,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: _saveEmergencyNumbers,
-                    child: const Text("Guardar números de emergencia"),
-                  ),
-                ],
+            const Text(
+              "Resultados Escala\nBurch-Wartofsky",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
               ),
             ),
+            const SizedBox(height: 20),
+            InteractiveViewer(
+              panEnabled: true,
+              minScale: 1,
+              maxScale: 4,
+              child: Image.asset(
+                "assets/images/tabla_burch.png",
+                fit: BoxFit.contain,
+                height: 350, // Puedes ajustar esto
+                width: MediaQuery.of(context).size.width * 0.95,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "Tabla que relaciona parámetros fisiológicos con una escala de puntajes discreta.",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 30),
+            if (t != null && bpm != null)
+              Column(
+                children: [
+                  Text(
+                    "Temperatura promedio: ${t.toStringAsFixed(1)} °C",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "Frecuencia cardiaca promedio: $bpm BPM",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "Cantidad de mediciones: $cantidad",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ],
+              )
+            else
+              const Text(
+                "Aún no se ha registrado ninguna medición.",
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
           ],
         ),
       ),

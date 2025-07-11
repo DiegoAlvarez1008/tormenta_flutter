@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'package:tormenta_app/screens/ble_state_controller.dart';
+import 'package:tormenta_app/resultados_promedio.dart';
 
 class ESP32Screen extends StatefulWidget {
   const ESP32Screen({Key? key}) : super(key: key);
@@ -9,6 +11,9 @@ class ESP32Screen extends StatefulWidget {
   @override
   State<ESP32Screen> createState() => _ESP32ScreenState();
 }
+
+List<double> temps = [];
+List<int> bpms = [];
 
 class _ESP32ScreenState extends State<ESP32Screen> {
   final _ble = FlutterReactiveBle();
@@ -27,7 +32,32 @@ class _ESP32ScreenState extends State<ESP32Screen> {
   @override
   void initState() {
     super.initState();
+    BLEStateController().bleActivo = false;
+    _mostrarDialogoAlInicio();
     _startScan();
+  }
+
+  void _mostrarDialogoAlInicio() {
+    Future.delayed(Duration.zero, () {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) {
+          return AlertDialog(
+            title: const Text("Aviso importante"),
+            content: const Text(
+              "El sistema se activará al presionar el botón físico en STORMI.\n\nUna vez iniciado, no podrás navegar por la app hasta detener la toma de datos.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text("OK"),
+              ),
+            ],
+          );
+        },
+      );
+    });
   }
 
   void _startScan() {
@@ -49,7 +79,7 @@ class _ESP32ScreenState extends State<ESP32Screen> {
       setState(() => estado = "Error de conexión: $e");
     });
 
-    await Future.delayed(const Duration(seconds: 2)); // esperar conexión
+    await Future.delayed(const Duration(seconds: 2));
 
     final services = await _ble.discoverServices(_device.id);
     bool charEncontrada = false;
@@ -64,18 +94,47 @@ class _ESP32ScreenState extends State<ESP32Screen> {
           );
 
           _dataSub = _ble.subscribeToCharacteristic(_rxChar).listen((data) {
-            final valor = utf8.decode(data); // decodificación correcta UTF-8
-            final partes = valor.split("|").map((e) => e.trim()).toList();
+            final valor = utf8.decode(data).trim();
 
-            if (partes.length == 2) {
-              // Extracción robusta
-              final tempRaw = partes[0].replaceAll(RegExp(r'[^0-9.]'), '').trim();
-              final fcRaw = partes[1].replaceAll(RegExp(r'[^0-9]'), '').trim();
+            if (valor == "FIN") {
+              final avgTemp = temps.isNotEmpty
+                  ? temps.reduce((a, b) => a + b) / temps.length
+                  : 0.0;
+              final avgBpm = bpms.isNotEmpty
+                  ? bpms.reduce((a, b) => a + b) / bpms.length
+                  : 0.0;
+
+              ResultadosPromedio.tempPromedio = avgTemp;
+              ResultadosPromedio.bpmPromedio = avgBpm.round();
+              ResultadosPromedio.cantidadDatos = temps.length;
 
               setState(() {
-                temperatura = '$tempRaw °C';
-                frecuenciaCardiaca = '$fcRaw BPM';
+                estado = 'La toma de datos finalizó. Puedes volver a navegar.';
+                BLEStateController().bleActivo = false;
+              });
+
+              temps.clear();
+              bpms.clear();
+              return; // salir
+            }
+
+            final partes = valor.split("|").map((e) => e.trim()).toList();
+            if (partes.length == 2) {
+              final tempRaw = partes[0].replaceAll(RegExp(r'[^0-9.]'), '');
+              final fcRaw = partes[1].replaceAll(RegExp(r'[^0-9]'), '');
+
+              final tempParsed = double.tryParse(tempRaw) ?? 0.0;
+              final bpmParsed = int.tryParse(fcRaw) ?? 0;
+
+              // Guardar datos para promediar
+              temps.add(tempParsed);
+              bpms.add(bpmParsed);
+
+              setState(() {
+                temperatura = '$tempParsed °C';
+                frecuenciaCardiaca = '$bpmParsed BPM';
                 estado = 'Recibiendo datos';
+                BLEStateController().bleActivo = true;
               });
             } else {
               setState(() {
@@ -83,6 +142,7 @@ class _ESP32ScreenState extends State<ESP32Screen> {
               });
             }
           });
+
           charEncontrada = true;
           break;
         }
@@ -104,18 +164,32 @@ class _ESP32ScreenState extends State<ESP32Screen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Datos del ESP32")),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text("Temperatura: $temperatura", style: const TextStyle(fontSize: 20)),
-            Text("Frecuencia Cardíaca: $frecuenciaCardiaca", style: const TextStyle(fontSize: 20)),
-            const SizedBox(height: 20),
-            Text("Estado: $estado", style: const TextStyle(color: Colors.grey)),
-          ],
+    return WillPopScope(
+      onWillPop: () async {
+        if (BLEStateController().bleActivo = true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("No puedes salir mientras STORMI está en funcionamiento."),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          return false;
+        }
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(title: const Text("Datos del ESP32")),
+        body: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("Temperatura: $temperatura", style: const TextStyle(fontSize: 20)),
+              Text("Frecuencia Cardíaca: $frecuenciaCardiaca", style: const TextStyle(fontSize: 20)),
+              const SizedBox(height: 20),
+              Text("Estado: $estado", style: const TextStyle(color: Colors.grey)),
+            ],
+          ),
         ),
       ),
     );

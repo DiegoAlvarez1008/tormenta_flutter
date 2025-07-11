@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'package:tormenta_app/screens/ble_state_controller.dart';
 import 'intro_screen.dart';
 import 'emergency_register.dart';
 import 'esp32_screen.dart';
@@ -49,7 +49,7 @@ class _RootNavigationState extends State<RootNavigation> {
     // Crear la lista de pantallas, inyectando _dni solo donde se necesita
     _screens = [
       IntroScreen(dni: _dni),
-      EmergencyRegisterScreen(dni: _dni),
+      EmergencyRegisterScreen(),
       const ESP32Screen(),
       const ChartsScreen(),
       const ProfileScreen(),
@@ -76,11 +76,25 @@ class _RootNavigationState extends State<RootNavigation> {
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        type: BottomNavigationBarType.fixed,
-        onTap: (i) => setState(() => _currentIndex = i),
+        onTap: (index) {
+          if (BLEStateController().bleActivo) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("No puedes navegar mientras STORMI está activo."),
+                duration: Duration(seconds: 2),
+              ),
+            );
+            return; // Ignora taps
+          }
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
-          BottomNavigationBarItem(icon: Icon(Icons.phone), label: 'Números'),
+          BottomNavigationBarItem(icon: Icon(Icons.table_chart), label: 'Test'),
           BottomNavigationBarItem(icon: Icon(Icons.bluetooth), label: 'ESP32'),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Gráficos'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Yo'),
