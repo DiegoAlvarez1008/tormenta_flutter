@@ -25,7 +25,7 @@ class _EmergencyRegisterScreenState extends State<EmergencyRegisterScreen> {
     bpm = ResultadosPromedio.bpmPromedio;
     cantidad = ResultadosPromedio.cantidadDatos;
 
-    if (temperatura != null && bpm != null && cantidad != null && !datosEnviados) {
+    if (temperatura != null && bpm != null && cantidad != null && ResultadosPromedio.datosListosParaEnvio == true) {
       puntuacionTemp = calcularPuntuacionTemperatura(temperatura!);
       puntuacionFC = calcularPuntuacionFC(bpm!);
       guardarEnFirestore();
@@ -71,6 +71,8 @@ class _EmergencyRegisterScreenState extends State<EmergencyRegisterScreen> {
 
       setState(() {
         datosEnviados = true;
+        ResultadosPromedio.datosListosParaEnvio = false;
+
       });
     } catch (e) {
       print('Error al guardar en Firestore: $e');

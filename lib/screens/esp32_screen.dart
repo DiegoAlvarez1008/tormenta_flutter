@@ -113,6 +113,7 @@ class _ESP32ScreenState extends State<ESP32Screen> {
 
               setState(() {
                 estado = 'La toma de datos finalizó. Puedes volver a navegar.';
+                ResultadosPromedio.datosListosParaEnvio = true;
                 BLEStateController().bleActivo = false;
               });
 

@@ -3,4 +3,5 @@ class ResultadosPromedio {
   static int? bpmPromedio;
   static int? spo2Promedio;
   static int? cantidadDatos;
+  static bool? datosListosParaEnvio;
 }
