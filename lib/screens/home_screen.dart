@@ -51,7 +51,7 @@ class HomeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
-                "Monitor de Crisis Tiroidea",
+                "Monitor de Crisis Tiroidea - STORMI",
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),

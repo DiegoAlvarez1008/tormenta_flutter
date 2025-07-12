@@ -14,6 +14,7 @@ class ESP32Screen extends StatefulWidget {
 
 List<double> temps = [];
 List<int> bpms = [];
+List<int> spo2s = [];
 
 class _ESP32ScreenState extends State<ESP32Screen> {
   final _ble = FlutterReactiveBle();
@@ -24,7 +25,9 @@ class _ESP32ScreenState extends State<ESP32Screen> {
 
   String temperatura = '';
   String frecuenciaCardiaca = '';
+  String saturacionOxigeno = '';
   String estado = 'Buscando dispositivo...';
+
 
   final serviceUuid = Uuid.parse("0000180d-0000-1000-8000-00805f9b34fb");
   final characteristicUuid = Uuid.parse("00002a37-0000-1000-8000-00805f9b34fb");
@@ -119,26 +122,26 @@ class _ESP32ScreenState extends State<ESP32Screen> {
             }
 
             final partes = valor.split("|").map((e) => e.trim()).toList();
-            if (partes.length == 2) {
+            if (partes.length == 3) {
               final tempRaw = partes[0].replaceAll(RegExp(r'[^0-9.]'), '');
               final fcRaw = partes[1].replaceAll(RegExp(r'[^0-9]'), '');
+              final spo2Raw = partes[2].replaceAll(RegExp(r'[^0-9]'), '');
 
               final tempParsed = double.tryParse(tempRaw) ?? 0.0;
               final bpmParsed = int.tryParse(fcRaw) ?? 0;
+              final spo2Parsed = int.tryParse(spo2Raw) ?? 0;
 
               // Guardar datos para promediar
               temps.add(tempParsed);
               bpms.add(bpmParsed);
+              spo2s.add(spo2Parsed);
 
               setState(() {
                 temperatura = '$tempParsed °C';
                 frecuenciaCardiaca = '$bpmParsed BPM';
                 estado = 'Recibiendo datos';
+                saturacionOxigeno = '$spo2Parsed %';
                 BLEStateController().bleActivo = true;
-              });
-            } else {
-              setState(() {
-                estado = 'Formato incorrecto de datos';
               });
             }
           });
@@ -186,6 +189,7 @@ class _ESP32ScreenState extends State<ESP32Screen> {
             children: [
               Text("Temperatura: $temperatura", style: const TextStyle(fontSize: 20)),
               Text("Frecuencia Cardíaca: $frecuenciaCardiaca", style: const TextStyle(fontSize: 20)),
+              Text("Saturación de Oxígeno: $saturacionOxigeno", style: const TextStyle(fontSize: 20)),
               const SizedBox(height: 20),
               Text("Estado: $estado", style: const TextStyle(color: Colors.grey)),
             ],
